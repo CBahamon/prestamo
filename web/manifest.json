@@ -1,0 +1,35 @@
+{
+    "name": "Préstamos",
+    "short_name": "Préstamos",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#EDEAFB",
+    "theme_color": "#6C5CE7",
+    "description": "Calculadora de préstamos, hipotecas y ahorros. Sin publicidad.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
