@@ -74,12 +74,11 @@ class Money {
   final CurrencyOption currency;
 
   NumberFormat get _number => NumberFormat.decimalPatternDigits(
-        locale: 'es_CO',
-        decimalDigits: currency.decimals,
-      );
+    locale: 'es_CO',
+    decimalDigits: currency.decimals,
+  );
 
-  NumberFormat get _compactNumber =>
-      NumberFormat.compact(locale: 'es_CO');
+  NumberFormat get _compactNumber => NumberFormat.compact(locale: 'es_CO');
 
   /// Siempre con el símbolo adelante: "$ 1.250.000".
   String format(num value) => '${currency.symbol} ${_number.format(value)}';
@@ -120,7 +119,8 @@ class MilesInputFormatter extends TextInputFormatter {
     var clean = raw.replaceAll(RegExp(r'[^\d,]'), '');
     final firstComma = clean.indexOf(',');
     if (firstComma >= 0) {
-      clean = clean.substring(0, firstComma + 1) +
+      clean =
+          clean.substring(0, firstComma + 1) +
           clean.substring(firstComma + 1).replaceAll(',', '');
     }
 
@@ -137,8 +137,9 @@ class MilesInputFormatter extends TextInputFormatter {
       return oldValue;
     }
 
-    final agrupada =
-        entera.isEmpty ? '' : formatPlain(int.parse(entera), decimals: 0);
+    final agrupada = entera.isEmpty
+        ? ''
+        : formatPlain(int.parse(entera), decimals: 0);
     final texto = decimales == null ? agrupada : '$agrupada,$decimales';
 
     // El cursor se ancla contando dígitos desde el final, así los puntos que

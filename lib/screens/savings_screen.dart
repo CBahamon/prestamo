@@ -21,102 +21,105 @@ class SavingsScreen extends StatelessWidget {
       builder: (context, _) {
         final money = app.money;
 
-        return Scaffold(
-          backgroundColor: ClayColors.background,
-          body: Column(
+        return ClayScaffold(
+          header: ClayHeader(
+            title: 'Mis ahorros',
+            subtitle: 'Total: ${money.format(app.totalSavings)}',
+            showBack: standalone,
+          ),
+          builder: (context, topPadding) => ListView(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              topPadding + 18,
+              20,
+              standalone ? 30 : 120,
+            ),
             children: [
-              ClayHeader(
-                title: 'Mis ahorros',
-                subtitle: 'Total: ${money.format(app.totalSavings)}',
-                showBack: standalone,
-              ),
-              Expanded(
-                child: ListView(
-                  padding:
-                      EdgeInsets.fromLTRB(20, 18, 20, standalone ? 30 : 120),
+              ClayCard(
+                color: ClayColors.pink,
+                child: Column(
                   children: [
-                    ClayCard(
-                      color: ClayColors.pink,
-                      child: Column(
-                        children: [
-                          Text(
-                            'TOTAL AHORRADO',
-                            style: TextStyle(
-                              fontSize: 11,
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white.withValues(alpha: 0.85),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          FittedBox(
-                            child: Text(
-                              money.format(app.totalSavings),
-                              style: const TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
+                    Text(
+                      'TOTAL AHORRADO',
+                      style: TextStyle(
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.85),
                       ),
                     ),
-                    const SizedBox(height: 18),
-                    ...app.savings.map(
-                      (s) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: ClayCard(
-                          padding: const EdgeInsets.all(16),
-                          onTap: () => _editSheet(context, entry: s),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: ClayColors.cyan.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(Icons.account_balance_wallet_rounded,
-                                    color: ClayColors.cyan),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Text(
-                                  s.name,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15),
-                                ),
-                              ),
-                              Text(
-                                money.format(s.amount),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: ClayColors.textDark,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded,
-                                    size: 18, color: ClayColors.textMuted),
-                                onPressed: () =>
-                                    AppState.instance.deleteSavings(s.id),
-                              ),
-                            ],
-                          ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      child: Text(
+                        money.format(app.totalSavings),
+                        style: const TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    ClayButton(
-                      label: 'Agregar ahorro',
-                      icon: Icons.add_rounded,
-                      color: ClayColors.pink,
-                      onPressed: () => _editSheet(context),
-                    ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 18),
+              ...app.savings.map(
+                (s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClayCard(
+                    padding: const EdgeInsets.all(16),
+                    onTap: () => _editSheet(context, entry: s),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: ClayColors.cyan.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.account_balance_wallet_rounded,
+                            color: ClayColors.cyan,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            s.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          money.format(s.amount),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: ClayColors.textDark,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: ClayColors.textMuted,
+                          ),
+                          onPressed: () =>
+                              AppState.instance.deleteSavings(s.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClayButton(
+                label: 'Agregar ahorro',
+                icon: Icons.add_rounded,
+                color: ClayColors.pink,
+                onPressed: () => _editSheet(context),
               ),
             ],
           ),
@@ -136,15 +139,12 @@ class SavingsScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           padding: const EdgeInsets.fromLTRB(22, 22, 22, 32),
           decoration: const BoxDecoration(
             color: ClayColors.background,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(32)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

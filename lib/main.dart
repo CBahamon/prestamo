@@ -4,7 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/currency_setup_sheet.dart';
 import 'screens/home_screen.dart';
-import 'screens/loan_calculator_screen.dart';
+import 'screens/calculator_screen.dart';
 import 'screens/saved_loans_screen.dart';
 import 'screens/savings_screen.dart';
 import 'screens/settings_screen.dart';
@@ -81,16 +81,13 @@ class _RootShellState extends State<RootShell> {
             child: child,
           ),
         ),
-        child: KeyedSubtree(
-          key: ValueKey(_index),
-          child: _tabs[_index],
-        ),
+        child: KeyedSubtree(key: ValueKey(_index), child: _tabs[_index]),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: _CenterFab(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const LoanCalculatorScreen()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const CalculatorScreen())),
       ),
       bottomNavigationBar: _ClayNavBar(
         index: _index,
@@ -130,8 +127,11 @@ class _CenterFab extends StatelessWidget {
             ),
           ],
         ),
-        child:
-            const Icon(Icons.calculate_rounded, color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.calculate_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }

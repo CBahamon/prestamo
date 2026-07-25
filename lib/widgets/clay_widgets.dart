@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../core/money.dart';
@@ -423,6 +424,9 @@ class ClayHeader extends StatelessWidget {
               ),
             Expanded(
               child: Column(
+                // Sin esto el encabezado se estira a toda la pantalla cuando
+                // vive dentro de un Stack, que sí le da altura acotada.
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -452,5 +456,94 @@ class ClayHeader extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Pantalla con el encabezado flotando encima del contenido.
+///
+/// El contenido scrollea **por debajo** del morado, así que el recorte lo hace
+/// la ola del [ClayHeader] y no una línea recta. El alto del encabezado se
+/// mide en tiempo real (cambia con el tamaño de letra del sistema y con el
+/// notch), y se le pasa al hijo para que arranque justo debajo.
+class ClayScaffold extends StatefulWidget {
+  const ClayScaffold({
+    super.key,
+    required this.header,
+    required this.builder,
+    this.background = ClayColors.background,
+  });
+
+  final ClayHeader header;
+
+  /// Recibe el alto del encabezado para usarlo como padding superior.
+  final Widget Function(BuildContext context, double topPadding) builder;
+
+  final Color background;
+
+  @override
+  State<ClayScaffold> createState() => _ClayScaffoldState();
+}
+
+class _ClayScaffoldState extends State<ClayScaffold> {
+  double _headerHeight = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: widget.background,
+      body: Stack(
+        children: [
+          Positioned.fill(child: widget.builder(context, _headerHeight)),
+          Align(
+            alignment: Alignment.topCenter,
+            child: _MeasureHeight(
+              // La ola invade los últimos píxeles: el contenido puede empezar
+              // un poco más arriba y aún así quedar tapado por la cresta.
+              onChange: (alto) => setState(() => _headerHeight = alto - 16),
+              child: widget.header,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Avisa el alto real de su hijo después de cada layout.
+///
+/// Medir con GlobalKey no sirve aquí: dentro de un Stack la búsqueda termina
+/// en el Align que ocupa toda la pantalla, no en el encabezado.
+class _MeasureHeight extends SingleChildRenderObjectWidget {
+  const _MeasureHeight({required this.onChange, required Widget super.child});
+
+  final ValueChanged<double> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderMeasureHeight(onChange);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderMeasureHeight renderObject,
+  ) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _RenderMeasureHeight extends RenderProxyBox {
+  _RenderMeasureHeight(this.onChange);
+
+  ValueChanged<double> onChange;
+  double? _ultimo;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    if (_ultimo != null && (size.height - _ultimo!).abs() < 0.5) return;
+    _ultimo = size.height;
+    // Fuera del layout: notificar aquí mismo dispararía un setState en pleno
+    // build.
+    WidgetsBinding.instance.addPostFrameCallback((_) => onChange(size.height));
   }
 }

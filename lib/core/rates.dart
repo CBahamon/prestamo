@@ -12,22 +12,20 @@ enum RateType {
 
 extension RateTypeX on RateType {
   String get label => switch (this) {
-        RateType.efectivaAnual => 'E.A.',
-        RateType.efectivaMensual => 'E.M.',
-        RateType.nominalAnualMesVencido => 'N.A. M.V.',
-        RateType.nominalAnualTrimestreVencido => 'N.A. T.V.',
-        RateType.nominalAnualSemestreVencido => 'N.A. S.V.',
-      };
+    RateType.efectivaAnual => 'E.A.',
+    RateType.efectivaMensual => 'E.M.',
+    RateType.nominalAnualMesVencido => 'N.A. M.V.',
+    RateType.nominalAnualTrimestreVencido => 'N.A. T.V.',
+    RateType.nominalAnualSemestreVencido => 'N.A. S.V.',
+  };
 
   String get description => switch (this) {
-        RateType.efectivaAnual => 'Efectiva anual (la usual en Colombia)',
-        RateType.efectivaMensual => 'Efectiva mensual',
-        RateType.nominalAnualMesVencido => 'Nominal anual, mes vencido',
-        RateType.nominalAnualTrimestreVencido =>
-          'Nominal anual, trimestre vencido',
-        RateType.nominalAnualSemestreVencido =>
-          'Nominal anual, semestre vencido',
-      };
+    RateType.efectivaAnual => 'Efectiva anual (la usual en Colombia)',
+    RateType.efectivaMensual => 'Efectiva mensual',
+    RateType.nominalAnualMesVencido => 'Nominal anual, mes vencido',
+    RateType.nominalAnualTrimestreVencido => 'Nominal anual, trimestre vencido',
+    RateType.nominalAnualSemestreVencido => 'Nominal anual, semestre vencido',
+  };
 
   /// Convierte el porcentaje ingresado (ej. 18.5) a tasa efectiva mensual
   /// en decimal (ej. 0.014249).

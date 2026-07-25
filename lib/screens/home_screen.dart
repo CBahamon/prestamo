@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../core/rates.dart';
+import '../models/saved_loan.dart';
 import '../state/app_state.dart';
 import '../theme/clay.dart';
 import '../widgets/clay_motion.dart';
 import '../widgets/clay_widgets.dart';
-import 'loan_calculator_screen.dart';
+import 'calculator_screen.dart';
 import 'loan_detail_screen.dart';
-import 'mortgage_screen.dart';
 import 'saved_loans_screen.dart';
 import 'savings_screen.dart';
 
@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
                           color: ClayColors.purple,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const LoanCalculatorScreen(),
+                              builder: (_) => const CalculatorScreen(),
                             ),
                           ),
                         ),
@@ -55,7 +55,9 @@ class HomeScreen extends StatelessWidget {
                           color: ClayColors.green,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const MortgageScreen(),
+                              builder: (_) => const CalculatorScreen(
+                                initialKind: LoanKind.hipoteca,
+                              ),
                             ),
                           ),
                         ),
@@ -209,17 +211,19 @@ class _SummaryCard extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          height: 210,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [ClayColors.purpleLight, ClayColors.purple],
-            ),
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(36),
-              bottomRight: Radius.circular(36),
+        // Misma ola que el resto de pantallas, para que el corte sea igual.
+        const WaveEdge(
+          child: SizedBox(
+            height: 226,
+            width: double.infinity,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [ClayColors.purpleLight, ClayColors.purple],
+                ),
+              ),
             ),
           ),
         ),

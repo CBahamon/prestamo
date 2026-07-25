@@ -38,7 +38,7 @@ class ResultSection extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'CUOTA MENSUAL',
+                  result.paymentVaries ? 'PRIMERA CUOTA' : 'CUOTA MENSUAL',
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 1.2,
@@ -58,8 +58,22 @@ class ResultSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
+                if (result.paymentVaries)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      result.isUvr
+                          ? 'Última cuota (en pesos): ${money.format(result.lastPayment)}'
+                          : 'Última cuota: ${money.format(result.lastPayment)}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  ),
                 Text(
-                  '${result.months} cuotas · ${(result.monthlyRate * 100).toStringAsFixed(3)}% mensual · ${ea.toStringAsFixed(2)}% E.A.',
+                  '${result.months} cuotas · ${(result.monthlyRate * 100).toStringAsFixed(3)}% mensual · ${ea.toStringAsFixed(2)}% ${result.isUvr ? "E.A. real" : "E.A."}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,

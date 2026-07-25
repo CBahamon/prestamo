@@ -20,45 +20,71 @@ class AmortizationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final money = AppState.instance.money;
 
-    return Scaffold(
-      body: Column(
+    return ClayScaffold(
+      header: ClayHeader(
+        title: title,
+        subtitle: [
+          '${result.months} cuotas',
+          'intereses ${money.compact(result.totalInterest)}',
+          if (result.totalExtra > 0)
+            'abonos ${money.compact(result.totalExtra)}',
+          if (result.isUvr) 'en pesos proyectados',
+        ].join(' · '),
+        showBack: true,
+      ),
+      builder: (context, topPadding) => Column(
         children: [
-          ClayHeader(
-            title: title,
-            subtitle:
-                '${result.months} cuotas · intereses ${money.compact(result.totalInterest)}',
-            showBack: true,
-          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+            padding: EdgeInsets.fromLTRB(20, topPadding + 12, 20, 10),
             child: ClayCard(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               radius: 20,
               child: Row(
-                children: const [
-                  SizedBox(
+                children: [
+                  const SizedBox(
                     width: 30,
                     child: Text('#', style: _headStyle),
                   ),
-                  Expanded(
+                  const Expanded(
                     flex: 3,
-                    child: Text('Cuota',
-                        textAlign: TextAlign.right, style: _headStyle),
+                    child: Text(
+                      'Cuota',
+                      textAlign: TextAlign.right,
+                      style: _headStyle,
+                    ),
                   ),
-                  Expanded(
+                  const Expanded(
                     flex: 3,
-                    child: Text('Interés',
-                        textAlign: TextAlign.right, style: _headStyle),
+                    child: Text(
+                      'Interés',
+                      textAlign: TextAlign.right,
+                      style: _headStyle,
+                    ),
                   ),
-                  Expanded(
+                  const Expanded(
                     flex: 3,
-                    child: Text('Capital',
-                        textAlign: TextAlign.right, style: _headStyle),
+                    child: Text(
+                      'Capital',
+                      textAlign: TextAlign.right,
+                      style: _headStyle,
+                    ),
                   ),
-                  Expanded(
+                  if (result.totalExtra > 0)
+                    const Expanded(
+                      flex: 3,
+                      child: Text(
+                        'Abono',
+                        textAlign: TextAlign.right,
+                        style: _headStyle,
+                      ),
+                    ),
+                  const Expanded(
                     flex: 3,
-                    child: Text('Saldo',
-                        textAlign: TextAlign.right, style: _headStyle),
+                    child: Text(
+                      'Saldo',
+                      textAlign: TextAlign.right,
+                      style: _headStyle,
+                    ),
                   ),
                 ],
               ),
@@ -72,8 +98,10 @@ class AmortizationScreen extends StatelessWidget {
                 final row = result.schedule[i];
                 final even = i.isEven;
                 return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 11,
+                  ),
                   margin: const EdgeInsets.only(bottom: 6),
                   decoration: BoxDecoration(
                     color: even
@@ -95,10 +123,16 @@ class AmortizationScreen extends StatelessWidget {
                         ),
                       ),
                       _Cell(money.compact(row.payment)),
-                      _Cell(money.compact(row.interest),
-                          color: ClayColors.red),
-                      _Cell(money.compact(row.principal),
-                          color: ClayColors.green),
+                      _Cell(money.compact(row.interest), color: ClayColors.red),
+                      _Cell(
+                        money.compact(row.principal),
+                        color: ClayColors.green,
+                      ),
+                      if (result.totalExtra > 0)
+                        _Cell(
+                          row.extra > 0 ? money.compact(row.extra) : '—',
+                          color: ClayColors.purple,
+                        ),
                       _Cell(money.compact(row.balance), bold: true),
                     ],
                   ),

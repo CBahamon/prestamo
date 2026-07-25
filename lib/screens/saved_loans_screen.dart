@@ -24,32 +24,32 @@ class SavedLoansScreen extends StatelessWidget {
         final money = app.money;
         final loans = app.loans;
 
-        return Scaffold(
-          backgroundColor: ClayColors.background,
-          body: Column(
-            children: [
-              ClayHeader(
-                title: 'Mis préstamos',
-                subtitle: loans.isEmpty
-                    ? 'Nada guardado todavía'
-                    : '${loans.length} guardados · ${money.compact(app.totalMonthlyPayments)} al mes',
-                showBack: standalone,
-              ),
-              Expanded(
-                child: loans.isEmpty
-                    ? const _Empty()
-                    : ListView.builder(
-                        padding: EdgeInsets.fromLTRB(
-                            20, 18, 20, standalone ? 30 : 120),
-                        itemCount: loans.length,
-                        itemBuilder: (context, i) => FadeSlideIn(
-                          delay: Duration(milliseconds: 70 * (i < 6 ? i : 6)),
-                          child: _LoanTile(loan: loans[i]),
-                        ),
-                      ),
-              ),
-            ],
+        return ClayScaffold(
+          header: ClayHeader(
+            title: 'Mis préstamos',
+            subtitle: loans.isEmpty
+                ? 'Nada guardado todavía'
+                : '${loans.length} guardados · ${money.compact(app.totalMonthlyPayments)} al mes',
+            showBack: standalone,
           ),
+          builder: (context, topPadding) => loans.isEmpty
+              ? Padding(
+                  padding: EdgeInsets.only(top: topPadding),
+                  child: const _Empty(),
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    topPadding + 18,
+                    20,
+                    standalone ? 30 : 120,
+                  ),
+                  itemCount: loans.length,
+                  itemBuilder: (context, i) => FadeSlideIn(
+                    delay: Duration(milliseconds: 70 * (i < 6 ? i : 6)),
+                    child: _LoanTile(loan: loans[i]),
+                  ),
+                ),
         );
       },
     );
@@ -71,9 +71,9 @@ class _LoanTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: ClayCard(
         padding: const EdgeInsets.all(18),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => LoanDetailScreen(loan: loan)),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => LoanDetailScreen(loan: loan))),
         child: Column(
           children: [
             Row(
@@ -102,13 +102,17 @@ class _LoanTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 16),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${money.compact(loan.amount)} · ${loan.months} meses · ${loan.ratePercent.toStringAsFixed(2)}% ${loan.rateType.label}',
                         style: const TextStyle(
-                            color: ClayColors.textMuted, fontSize: 12),
+                          color: ClayColors.textMuted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -119,15 +123,26 @@ class _LoanTile extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Cuota mensual',
-                    style:
-                        TextStyle(color: ClayColors.textMuted, fontSize: 12)),
                 Text(
-                  money.format(loan.result.payment),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                    color: color,
+                  loan.result.paymentVaries ? 'Primera cuota' : 'Cuota mensual',
+                  style: const TextStyle(
+                    color: ClayColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      money.format(loan.result.payment),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 17,
+                        color: color,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -150,8 +165,11 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            Icon(Icons.folder_open_rounded,
-                size: 60, color: ClayColors.textMuted),
+            Icon(
+              Icons.folder_open_rounded,
+              size: 60,
+              color: ClayColors.textMuted,
+            ),
             SizedBox(height: 14),
             Text(
               'Calcula un préstamo o una hipoteca\ny tócale "Guardar".',

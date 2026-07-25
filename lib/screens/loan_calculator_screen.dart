@@ -11,20 +11,31 @@ import '../widgets/clay_widgets.dart';
 import '../widgets/result_section.dart';
 import 'amortization_screen.dart';
 
-class LoanCalculatorScreen extends StatefulWidget {
-  const LoanCalculatorScreen({super.key});
+/// Formulario de préstamo. Vive dentro de [CalculatorScreen], que es quien
+/// pone el encabezado y el selector préstamo/hipotecario.
+class LoanCalculatorForm extends StatefulWidget {
+  const LoanCalculatorForm({
+    super.key,
+    required this.topPadding,
+    required this.modeSelector,
+  });
+
+  /// Alto del encabezado: el contenido arranca debajo de la ola.
+  final double topPadding;
+  final Widget modeSelector;
 
   @override
-  State<LoanCalculatorScreen> createState() => _LoanCalculatorScreenState();
+  State<LoanCalculatorForm> createState() => _LoanCalculatorFormState();
 }
 
-class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
+class _LoanCalculatorFormState extends State<LoanCalculatorForm> {
   final _amount = TextEditingController();
   final _rate = TextEditingController();
   final _term = TextEditingController();
 
   RateType _rateType = RateType.efectivaAnual;
   TermUnit _termUnit = TermUnit.meses;
+  PaymentSystem _system = PaymentSystem.cuotaFija;
   LoanResult? _result;
 
   @override
@@ -57,6 +68,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
         amount: amount,
         monthlyRate: _rateType.toMonthlyRate(rate),
         months: months,
+        system: _system,
       );
     });
     FocusScope.of(context).unfocus();
@@ -68,8 +80,7 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
         content: Text(msg),
         backgroundColor: ClayColors.purpleDark,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }
@@ -80,17 +91,20 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
     final name = await askLoanName(context, 'Préstamo');
     if (name == null) return;
 
-    await AppState.instance.addLoan(SavedLoan(
-      id: const Uuid().v4(),
-      name: name,
-      kind: LoanKind.prestamo,
-      amount: result.amount,
-      ratePercent: parseAmount(_rate.text) ?? 0,
-      rateType: _rateType,
-      months: result.months,
-      currencyCode: AppState.instance.currencyCode,
-      createdAt: DateTime.now(),
-    ));
+    await AppState.instance.addLoan(
+      SavedLoan(
+        id: const Uuid().v4(),
+        name: name,
+        kind: LoanKind.prestamo,
+        amount: result.amount,
+        ratePercent: parseAmount(_rate.text) ?? 0,
+        rateType: _rateType,
+        months: result.months,
+        currencyCode: AppState.instance.currencyCode,
+        createdAt: DateTime.now(),
+        system: _system,
+      ),
+    );
     if (mounted) _toast('Préstamo guardado');
   }
 
@@ -99,94 +113,93 @@ class _LoanCalculatorScreenState extends State<LoanCalculatorScreen> {
     final result = _result;
     final symbol = AppState.instance.currency.symbol;
 
-    return Scaffold(
-      body: Column(
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(20, widget.topPadding + 16, 20, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const ClayHeader(
-            title: 'Calcular préstamo',
-            subtitle: 'Cuota fija · sistema francés',
-            showBack: true,
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ClayCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClayField(
-                          controller: _amount,
-                          label: 'Valor del préstamo',
-                          hint: 'Monto',
-                          prefix: '$symbol ',
-                          money: true,
-                        ),
-                        const SizedBox(height: 18),
-                        ClayField(
-                          controller: _rate,
-                          label: 'Tasa de interés',
-                          hint: 'Ej: 18,5',
-                          suffix: '%',
-                        ),
-                        const SizedBox(height: 12),
-                        ClayChips<RateType>(
-                          options: RateType.values,
-                          selected: _rateType,
-                          labelOf: (r) => r.label,
-                          onSelect: (r) => setState(() => _rateType = r),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _rateType.description,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: ClayColors.textMuted,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        ClayField(
-                          controller: _term,
-                          label: 'Plazo',
-                          hint: 'Ej: 60',
-                        ),
-                        const SizedBox(height: 12),
-                        ClayChips<TermUnit>(
-                          options: TermUnit.values,
-                          selected: _termUnit,
-                          labelOf: (t) => t.label,
-                          onSelect: (t) => setState(() => _termUnit = t),
-                        ),
-                      ],
-                    ),
+          widget.modeSelector,
+          const SizedBox(height: 16),
+          ClayCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClayField(
+                  controller: _amount,
+                  label: 'Valor del préstamo',
+                  hint: 'Monto',
+                  prefix: '$symbol ',
+                  money: true,
+                ),
+                const SizedBox(height: 18),
+                ClayField(
+                  controller: _rate,
+                  label: 'Tasa de interés',
+                  hint: 'Ej: 18,5',
+                  suffix: '%',
+                ),
+                const SizedBox(height: 12),
+                ClayChips<RateType>(
+                  options: RateType.values,
+                  selected: _rateType,
+                  labelOf: (r) => r.label,
+                  onSelect: (r) => setState(() => _rateType = r),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _rateType.description,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: ClayColors.textMuted,
                   ),
-                  const SizedBox(height: 18),
-                  ClayButton(
-                    label: 'Calcular',
-                    icon: Icons.calculate_rounded,
-                    onPressed: _calculate,
+                ),
+                const SizedBox(height: 18),
+                ClayField(controller: _term, label: 'Plazo', hint: 'Ej: 60'),
+                const SizedBox(height: 12),
+                ClayChips<TermUnit>(
+                  options: TermUnit.values,
+                  selected: _termUnit,
+                  labelOf: (t) => t.label,
+                  onSelect: (t) => setState(() => _termUnit = t),
+                ),
+                const SizedBox(height: 18),
+                ClayChips<PaymentSystem>(
+                  label: 'Tipo de cuota',
+                  options: PaymentSystem.values,
+                  selected: _system,
+                  labelOf: (s) => s.label,
+                  onSelect: (s) => setState(() => _system = s),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _system.description,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: ClayColors.textMuted,
                   ),
-                  if (result != null) ...[
-                    const SizedBox(height: 22),
-                    ResultSection(
-                      result: result,
-                      onSave: _save,
-                      onSeeTable: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AmortizationScreen(
-                            result: result,
-                            title: 'Amortización',
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 18),
+          ClayButton(
+            label: 'Calcular',
+            icon: Icons.calculate_rounded,
+            onPressed: _calculate,
+          ),
+          if (result != null) ...[
+            const SizedBox(height: 22),
+            ResultSection(
+              result: result,
+              onSave: _save,
+              onSeeTable: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      AmortizationScreen(result: result, title: 'Amortización'),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

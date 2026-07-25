@@ -36,8 +36,7 @@ class AppState extends ChangeNotifier {
   double get totalMonthlyPayments =>
       loans.fold<double>(0, (sum, l) => sum + l.result.payment);
 
-  double get totalDebt =>
-      loans.fold<double>(0, (sum, l) => sum + l.amount);
+  double get totalDebt => loans.fold<double>(0, (sum, l) => sum + l.amount);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -73,6 +72,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> addLoan(SavedLoan loan) async {
     loans = [loan, ...loans];
+    await _persistLoans();
+  }
+
+  Future<void> updateLoan(SavedLoan loan) async {
+    final i = loans.indexWhere((l) => l.id == loan.id);
+    if (i < 0) return;
+    loans = [...loans]..[i] = loan;
     await _persistLoans();
   }
 

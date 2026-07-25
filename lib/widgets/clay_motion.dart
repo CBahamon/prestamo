@@ -211,7 +211,8 @@ class WaveBottomClipper extends CustomClipper<Path> {
     const steps = 40;
     for (var i = 0; i <= steps; i++) {
       final x = size.width * i / steps;
-      final y = size.height -
+      final y =
+          size.height -
           amplitude * 2 +
           amplitude * math.sin((i / steps) * 2 * math.pi + phase);
       path.lineTo(x, y);
