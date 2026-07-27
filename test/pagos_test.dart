@@ -4,13 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:prestamo/core/amortization.dart';
+import 'package:prestamo/core/dates.dart';
 import 'package:prestamo/core/rates.dart';
 import 'package:prestamo/main.dart';
 import 'package:prestamo/models/saved_loan.dart';
 import 'package:prestamo/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-SavedLoan _prestamo({int paidCount = 0, ExtraPayment? extra}) => SavedLoan(
+SavedLoan _prestamo({
+  int paidCount = 0,
+  List<ExtraPayment> extras = const [],
+  DateTime? first,
+}) => SavedLoan(
   id: 'test-1',
   name: 'Carro',
   kind: LoanKind.prestamo,
@@ -21,7 +26,8 @@ SavedLoan _prestamo({int paidCount = 0, ExtraPayment? extra}) => SavedLoan(
   currencyCode: 'COP',
   createdAt: DateTime(2026, 1, 15),
   paidCount: paidCount,
-  extra: extra,
+  extras: extras,
+  firstPaymentDate: first,
 );
 
 void main() {
@@ -64,10 +70,10 @@ void main() {
       // el avance no puede pasarse del plazo real.
       final l = _prestamo(
         paidCount: 40,
-        extra: const ExtraPayment(
+        extras: [const ExtraPayment(
           amount: 2000000,
           effect: ExtraEffect.reducirPlazo,
-        ),
+        )],
       );
       expect(l.result.months, lessThan(40));
       expect(l.paidMonths, l.result.months);
@@ -83,6 +89,159 @@ void main() {
     test('un préstamo guardado con la versión vieja abre en cero', () {
       final json = _prestamo(paidCount: 7).toJson()..remove('paidCount');
       expect(SavedLoan.fromJson(json).paidCount, 0);
+    });
+  });
+
+  group('fechas de las cuotas', () {
+    test('sin fecha guardada arranca el mes siguiente a la creación', () {
+      final l = _prestamo();
+      expect(l.firstPayment, DateTime(2026, 2, 1));
+      expect(l.dateOf(1), DateTime(2026, 2, 1));
+      expect(l.dateOf(12), DateTime(2027, 1, 1));
+      expect(l.dateOf(60), DateTime(2031, 1, 1));
+    });
+
+    test('respeta la fecha que puso el usuario', () {
+      final l = _prestamo(first: DateTime(2026, 8, 5));
+      expect(l.dateOf(1), DateTime(2026, 8, 5));
+      expect(l.dateOf(6), DateTime(2027, 1, 5));
+    });
+
+    test('el día 31 cae al último día de los meses cortos', () {
+      expect(addMonths(DateTime(2026, 1, 31), 1), DateTime(2026, 2, 28));
+      expect(addMonths(DateTime(2028, 1, 31), 1), DateTime(2028, 2, 29));
+      expect(addMonths(DateTime(2026, 1, 31), 2), DateTime(2026, 3, 31));
+    });
+
+    test('la fecha sobrevive el viaje a JSON', () {
+      final json = _prestamo(first: DateTime(2026, 8, 5)).toJson();
+      expect(SavedLoan.fromJson(json).firstPaymentDate, DateTime(2026, 8, 5));
+    });
+  });
+
+  group('capital e interés pagados', () {
+    test('suman lo que va pagado', () {
+      final l = _prestamo(paidCount: 10);
+      expect(l.paidPrincipal + l.paidInterest, closeTo(l.paidSoFar, 1));
+    });
+
+    test('al principio pesa más el interés que el capital', () {
+      final l = _prestamo(paidCount: 6);
+      expect(l.paidInterest, greaterThan(l.paidPrincipal));
+      // Y al final se invierte: la última mitad del crédito casi todo capital.
+      final completo = _prestamo(paidCount: 60);
+      expect(completo.paidPrincipal, greaterThan(completo.paidInterest));
+    });
+
+    test('el capital pagado es lo que bajó la deuda', () {
+      final l = _prestamo(paidCount: 15);
+      expect(l.paidPrincipal, closeTo(l.amount - l.remainingBalance, 1));
+    });
+
+    test('los abonos cuentan como capital', () {
+      final l = _prestamo(
+        paidCount: 6,
+        extras: [const ExtraPayment(
+          amount: 1000000,
+          effect: ExtraEffect.reducirPlazo,
+        )],
+      );
+      final sinAbonos = _prestamo(paidCount: 6);
+      expect(l.paidPrincipal, greaterThan(sinAbonos.paidPrincipal));
+      expect(l.paidPrincipal, closeTo(l.amount - l.remainingBalance, 1));
+    });
+  });
+
+  group('abonos y cuotas pagadas', () {
+    test('un abono ya configurado en una cuota pagada no se mueve', () {
+      // El usuario abonó en la cuota 2 y ya pagó 4: eso es historia, la hoja
+      // de abonos no debe empujarlo a la cuota 5.
+      final l = _prestamo(
+        paidCount: 4,
+        extras: [const ExtraPayment(
+          amount: 5000000,
+          effect: ExtraEffect.reducirPlazo,
+          startMonth: 2,
+          recurring: false,
+        )],
+      );
+      expect(l.result.schedule[1].extra, 5000000);
+      expect(l.paidPrincipal, closeTo(l.amount - l.remainingBalance, 1));
+    });
+  });
+
+  group('varios abonos', () {
+    test('dos abonos en el mismo mes se suman', () {
+      final l = _prestamo(
+        extras: const [
+          ExtraPayment(
+            amount: 1000000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 3,
+            recurring: false,
+          ),
+          ExtraPayment(
+            amount: 500000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 3,
+            recurring: false,
+          ),
+        ],
+      );
+      expect(l.result.schedule[2].extra, 1500000);
+      expect(l.result.totalExtra, 1500000);
+    });
+
+    test('abonos en meses distintos caen cada uno en el suyo', () {
+      final l = _prestamo(
+        extras: const [
+          ExtraPayment(
+            amount: 2000000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 1,
+            recurring: false,
+          ),
+          ExtraPayment(
+            amount: 3000000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 10,
+            recurring: false,
+          ),
+        ],
+      );
+      expect(l.result.schedule[0].extra, 2000000);
+      expect(l.result.schedule[9].extra, 3000000);
+      expect(l.result.schedule[4].extra, 0);
+      expect(l.result.months, lessThan(60));
+    });
+
+    test('un abono no puede pasarse del saldo que queda', () {
+      final l = _prestamo(
+        extras: const [
+          ExtraPayment(
+            amount: 999999999,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 1,
+            recurring: false,
+          ),
+        ],
+      );
+      expect(l.result.months, 1);
+      expect(l.result.schedule.last.balance, 0);
+      expect(l.result.totalExtra, lessThan(50000000));
+    });
+
+    test('el formato viejo de un solo abono sigue abriendo', () {
+      final viejo = {
+        ..._prestamo().toJson(),
+        'extra': const ExtraPayment(
+          amount: 700000,
+          effect: ExtraEffect.reducirPlazo,
+        ).toJson(),
+      }..remove('extras');
+      final l = SavedLoan.fromJson(viejo);
+      expect(l.extras, hasLength(1));
+      expect(l.extras.single.amount, 700000);
     });
   });
 
@@ -158,7 +317,11 @@ void main() {
     expect(find.textContaining('Pagué la cuota 2'), findsOneWidget);
 
     // En la tabla, tocar la cuota 3 marca también la 2.
-    await tester.ensureVisible(find.text('Ver tabla de amortización'));
+    await tester.dragUntilVisible(
+      find.text('Ver tabla de amortización'),
+      find.byType(ListView).first,
+      const Offset(0, -160),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Ver tabla de amortización'));
     await tester.pumpAndSettle();

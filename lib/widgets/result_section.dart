@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/amortization.dart';
+import '../core/dates.dart';
 import '../core/money.dart';
 import '../core/rates.dart';
 import '../state/app_state.dart';
@@ -172,47 +173,127 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// Pide nombre para guardar. Devuelve null si se cancela.
-Future<String?> askLoanName(BuildContext context, String suggestion) {
+/// Lo que se pregunta al guardar: cómo se llama y cuándo se paga la primera
+/// cuota (de ahí salen las fechas de toda la tabla).
+class LoanDraft {
+  const LoanDraft(this.name, this.firstPayment);
+
+  final String name;
+  final DateTime firstPayment;
+}
+
+/// Pide nombre y fecha de la primera cuota. Devuelve null si se cancela.
+Future<LoanDraft?> askLoanDetails(BuildContext context, String suggestion) {
   final controller = TextEditingController(text: suggestion);
-  return showDialog<String>(
+  var primera = nextMonthStart();
+
+  return showDialog<LoanDraft>(
     context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: ClayColors.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-      title: const Text(
-        'Nombre del préstamo',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-      ),
-      content: ClayField(
-        controller: controller,
-        hint: 'Ej: Carro Bancolombia',
-        keyboardType: TextInputType.text,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: ClayColors.textMuted),
-          ),
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: ClayColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+        title: const Text(
+          'Guardar préstamo',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
         ),
-        TextButton(
-          onPressed: () => Navigator.pop(
-            context,
-            controller.text.trim().isEmpty
-                ? suggestion
-                : controller.text.trim(),
-          ),
-          child: const Text(
-            'Guardar',
-            style: TextStyle(
-              color: ClayColors.purple,
-              fontWeight: FontWeight.w700,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClayField(
+              controller: controller,
+              hint: 'Ej: Carro Bancolombia',
+              keyboardType: TextInputType.text,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'PRIMERA CUOTA',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w700,
+                color: ClayColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 6),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () async {
+                final elegida = await showDatePicker(
+                  context: context,
+                  initialDate: primera,
+                  firstDate: DateTime(DateTime.now().year - 10),
+                  lastDate: DateTime(DateTime.now().year + 10),
+                  helpText: '¿Cuándo pagas la primera cuota?',
+                );
+                if (elegida != null) setState(() => primera = elegida);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: ClayColors.background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_rounded,
+                      size: 18,
+                      color: ClayColors.purple,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        fullDate(primera),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.edit_calendar_rounded,
+                      size: 18,
+                      color: ClayColors.textMuted,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: ClayColors.textMuted),
             ),
           ),
-        ),
-      ],
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+              LoanDraft(
+                controller.text.trim().isEmpty
+                    ? suggestion
+                    : controller.text.trim(),
+                primera,
+              ),
+            ),
+            child: const Text(
+              'Guardar',
+              style: TextStyle(
+                color: ClayColors.purple,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

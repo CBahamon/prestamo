@@ -40,7 +40,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('configurar un abono actualiza el préstamo guardado',
+  testWidgets('agregar abonos uno por uno actualiza el préstamo guardado',
       (tester) async {
     await arrancar(tester);
 
@@ -50,38 +50,43 @@ void main() {
     await tester.tap(find.text('Carro'));
     await tester.pumpAndSettle();
 
-    // La invitación a abonar está más abajo, después del avance del crédito.
-    await tester.dragUntilVisible(
-      find.text('¿Vas a hacer abonos a capital?'),
-      find.byType(ListView).first,
-      const Offset(0, -160),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('¿Vas a hacer abonos a capital?'), findsOneWidget);
+    // La primera vez se entra por la tarjeta vacía; después, por el botón.
+    Future<void> agregarAbono(String monto, String entrada) async {
+      await tester.dragUntilVisible(
+        find.text(entrada),
+        find.byType(ListView).first,
+        const Offset(0, -160),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(entrada));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('¿Vas a hacer abonos a capital?'));
-    await tester.pumpAndSettle();
+      expect(find.text('Nuevo abono a capital'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, monto);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Con este abono te ahorras'), findsOneWidget);
 
-    expect(find.text('Abonos a capital'), findsOneWidget);
+      await tester.ensureVisible(find.text('Agregar abono'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Agregar abono'));
+      await tester.pumpAndSettle();
+    }
 
-    // 500.000 mensuales reduciendo plazo (opción por defecto).
-    await tester.enterText(find.byType(TextField).first, '500000');
-    await tester.pumpAndSettle();
+    await agregarAbono('500000', 'Abonos a capital');
 
-    expect(find.textContaining('Te ahorras'), findsOneWidget);
-    expect(find.textContaining('meses antes'), findsOneWidget);
+    var guardado = AppState.instance.loans.single;
+    expect(guardado.extras, hasLength(1));
+    expect(guardado.extras.single.amount, 500000);
+    expect(guardado.extras.single.effect, ExtraEffect.reducirPlazo);
+    expect(guardado.extras.single.recurring, isFalse);
+    expect(guardado.extras.single.startMonth, 1);
 
-    await tester.ensureVisible(find.text('Guardar abonos'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Guardar abonos'));
-    await tester.pumpAndSettle();
+    // Un segundo abono en el mismo mes se suma al primero.
+    await agregarAbono('300000', 'Agregar otro abono');
 
-    // Queda persistido en el estado, con el efecto elegido.
-    final guardado = AppState.instance.loans.single;
-    expect(guardado.extra, isNotNull);
-    expect(guardado.extra!.amount, 500000);
-    expect(guardado.extra!.effect, ExtraEffect.reducirPlazo);
-    expect(guardado.extra!.recurring, isTrue);
+    guardado = AppState.instance.loans.single;
+    expect(guardado.extras, hasLength(2));
+    expect(guardado.result.schedule.first.extra, 800000);
 
     // El plazo efectivo baja respecto a los 60 meses pactados.
     expect(guardado.result.months, lessThan(60));
@@ -90,9 +95,14 @@ void main() {
       lessThan(guardado.baseResult.totalInterest),
     );
 
-    // Y el detalle ya muestra el ahorro en vez de la invitación.
-    expect(find.textContaining('Ahorras'), findsOneWidget);
-    expect(find.text('¿Vas a hacer abonos a capital?'), findsNothing);
+    // Y el detalle ya lista los abonos con su ahorro.
+    expect(find.text('Mis abonos'), findsOneWidget);
+    expect(find.textContaining('Te ahorras'), findsOneWidget);
+
+    // Quitar uno vuelve a dejar la lista en un solo abono.
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pumpAndSettle();
+    expect(AppState.instance.loans.single.extras, hasLength(1));
   });
 
   testWidgets('el selector préstamo/hipotecario cambia el formulario',

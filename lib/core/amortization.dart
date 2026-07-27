@@ -185,21 +185,24 @@ LoanResult calculateLoan({
   required double monthlyRate,
   required int months,
   PaymentSystem system = PaymentSystem.cuotaFija,
-  ExtraPayment? extra,
+  List<ExtraPayment> extras = const [],
   UvrProjection? uvr,
 }) {
   final enUvr = uvr != null;
 
   // En UVR se trabaja en unidades; al final cada fila se pasa a pesos.
   final saldoInicial = enUvr ? amount / uvr.uvrToday : amount;
-  final abono = extra == null
-      ? null
-      : ExtraPayment(
-          amount: enUvr ? extra.amount / uvr.uvrToday : extra.amount,
-          effect: extra.effect,
-          startMonth: extra.startMonth,
-          recurring: extra.recurring,
-        );
+  final abonos = enUvr
+      ? [
+          for (final e in extras)
+            ExtraPayment(
+              amount: e.amount / uvr.uvrToday,
+              effect: e.effect,
+              startMonth: e.startMonth,
+              recurring: e.recurring,
+            ),
+        ]
+      : extras;
 
   var balance = saldoInicial;
   var cuota = monthlyPayment(
@@ -224,19 +227,20 @@ LoanResult calculateLoan({
 
     var cuotaMes = capital + interes;
 
-    var abonoMes = 0.0;
-    if (abono != null && abono.appliesTo(n)) {
-      abonoMes = math.min(abono.amount, balance - capital);
-      if (abonoMes < 0) abonoMes = 0;
-    }
+    // Varios abonos pueden caer en el mismo mes: se suman.
+    final delMes = abonos.where((a) => a.appliesTo(n));
+    var abonoMes = delMes.fold<double>(0, (sum, a) => sum + a.amount);
+    if (abonoMes > balance - capital) abonoMes = balance - capital;
+    if (abonoMes < 0) abonoMes = 0;
+
+    // Basta que uno pida bajar la cuota para recalcularla.
+    final bajaCuota = delMes.any((a) => a.effect == ExtraEffect.reducirCuota);
 
     balance = balance - capital - abonoMes;
     if (balance.abs() < 1e-6) balance = 0;
 
     // Con "reducir cuota" se recalcula con el saldo nuevo y el plazo que queda.
-    if (abonoMes > 0 &&
-        abono!.effect == ExtraEffect.reducirCuota &&
-        balance > 0) {
+    if (abonoMes > 0 && bajaCuota && balance > 0) {
       final restantes = months - n;
       if (restantes > 0) {
         cuota = monthlyPayment(

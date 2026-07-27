@@ -54,10 +54,10 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extra: const ExtraPayment(
+        extras: [const ExtraPayment(
           amount: 500000,
           effect: ExtraEffect.reducirPlazo,
-        ),
+        )],
       );
 
       expect(conAbono.months, lessThan(base.months));
@@ -72,10 +72,10 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extra: const ExtraPayment(
+        extras: [const ExtraPayment(
           amount: 500000,
           effect: ExtraEffect.reducirCuota,
-        ),
+        )],
       );
 
       expect(conAbono.schedule.last.payment, lessThan(base.payment));
@@ -88,7 +88,7 @@ void main() {
             amount: 50000000,
             monthlyRate: mensual18,
             months: 60,
-            extra: ExtraPayment(amount: 500000, effect: efecto),
+            extras: [ExtraPayment(amount: 500000, effect: efecto)],
           );
 
       expect(
@@ -102,12 +102,12 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extra: const ExtraPayment(
+        extras: [const ExtraPayment(
           amount: 5000000,
           effect: ExtraEffect.reducirPlazo,
           startMonth: 12,
           recurring: false,
-        ),
+        )],
       );
 
       final conAbono =
@@ -121,10 +121,10 @@ void main() {
         amount: 10000000,
         monthlyRate: mensual18,
         months: 60,
-        extra: const ExtraPayment(
+        extras: [const ExtraPayment(
           amount: 9000000,
           effect: ExtraEffect.reducirPlazo,
-        ),
+        )],
       );
 
       expect(enorme.schedule.last.balance, 0);

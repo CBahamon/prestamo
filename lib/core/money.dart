@@ -87,6 +87,12 @@ class Money {
   String compact(num value) => value.abs() >= 1000000
       ? '${currency.symbol} ${_compactNumber.format(value)}'
       : format(value);
+
+  /// Lo más corto posible, para las celdas de la tabla: "202 K", "1,9 M".
+  /// Sin símbolo: repetirlo en seis columnas no cabe y no aporta.
+  String tight(num value) => value.abs() >= 1000
+      ? _compactNumber.format(value)
+      : _number.format(value);
 }
 
 final _plainNumber = NumberFormat.decimalPattern('es_CO');

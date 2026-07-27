@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/amortization.dart';
 import '../core/money.dart';
 import '../models/saved_loan.dart';
 import '../models/savings_entry.dart';
@@ -85,6 +86,20 @@ class AppState extends ChangeNotifier {
     if (i < 0) return;
     loans = [...loans]..[i] = loan;
     await _persistLoans();
+  }
+
+  /// Agrega un abono a capital, ordenado por la cuota en que cae.
+  Future<void> addExtra(SavedLoan loan, ExtraPayment extra) async {
+    final lista = [...loan.extras, extra]
+      ..sort((a, b) => a.startMonth.compareTo(b.startMonth));
+    await updateLoan(loan.copyWith(extras: lista));
+  }
+
+  /// Quita el abono que está en la posición [index] de la lista.
+  Future<void> removeExtra(SavedLoan loan, int index) async {
+    if (index < 0 || index >= loan.extras.length) return;
+    final lista = [...loan.extras]..removeAt(index);
+    await updateLoan(loan.copyWith(extras: lista));
   }
 
   /// Marca las primeras [paid] cuotas como pagadas.

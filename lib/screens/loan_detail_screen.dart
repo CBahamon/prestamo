@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../core/amortization.dart';
+import '../core/dates.dart';
 import '../core/rates.dart';
 import '../models/saved_loan.dart';
 import '../state/app_state.dart';
@@ -148,6 +149,7 @@ class _Detalle extends StatelessWidget {
                   'Equivale a',
                   '${ea.toStringAsFixed(2)}% E.A.${loan.uvr != null ? ' real' : ''}',
                 ),
+                _FechaRow(loan: loan),
                 _row(
                   'Plazo',
                   '${loan.months} meses${result.months != loan.months ? ' → ${result.months} con abonos' : ''}',
@@ -185,6 +187,7 @@ class _Detalle extends StatelessWidget {
                   result: result,
                   title: loan.name,
                   loan: loan,
+                  firstPayment: loan.firstPayment,
                 ),
               ),
             ),
@@ -219,6 +222,70 @@ class _Detalle extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fecha de la primera cuota, editable: de ahí salen las fechas de la tabla.
+class _FechaRow extends StatelessWidget {
+  const _FechaRow({required this.loan});
+
+  final SavedLoan loan;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final elegida = await showDatePicker(
+          context: context,
+          initialDate: loan.firstPayment,
+          firstDate: DateTime(DateTime.now().year - 10),
+          lastDate: DateTime(DateTime.now().year + 10),
+          helpText: '¿Cuándo pagaste la primera cuota?',
+        );
+        if (elegida != null) {
+          await AppState.instance.updateLoan(
+            loan.copyWith(firstPaymentDate: elegida),
+          );
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Primera cuota',
+              style: TextStyle(color: ClayColors.textMuted, fontSize: 13),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      fullDate(loan.firstPayment),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.edit_calendar_rounded,
+                    size: 15,
+                    color: ClayColors.purple,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -287,6 +354,18 @@ class _ProgresoCard extends StatelessWidget {
               ),
             ],
           ),
+          if (pagadas > 0) ...[
+            const SizedBox(height: 10),
+            Text(
+              'De eso, ${money.compact(loan.paidPrincipal)} bajaron la deuda y '
+              '${money.compact(loan.paidInterest)} se fueron en intereses.',
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: ClayColors.textMuted,
+                height: 1.35,
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           if (siguiente == null)
             const Row(
@@ -309,7 +388,17 @@ class _ProgresoCard extends StatelessWidget {
                 ),
               ],
             )
-          else
+          else ...[
+            Text(
+              'Próxima: cuota ${siguiente.number} de '
+              '${longMonth(loan.dateOf(siguiente.number))}',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: ClayColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 8),
             ClayButton(
               label:
                   'Pagué la cuota ${siguiente.number} · '
@@ -319,6 +408,7 @@ class _ProgresoCard extends StatelessWidget {
               onPressed: () =>
                   AppState.instance.setPaidCount(loan, siguiente.number),
             ),
+          ],
           if (pagadas > 0) ...[
             const SizedBox(height: 8),
             Center(
@@ -364,7 +454,8 @@ class _ProgresoCard extends StatelessWidget {
   );
 }
 
-/// Tarjeta de abonos: invita a configurarlos o muestra lo que se ahorra.
+/// Lista de abonos a capital: se van agregando cuando el usuario quiera,
+/// varios en el mismo mes o ninguno.
 class _AbonosCard extends StatelessWidget {
   const _AbonosCard({required this.loan, required this.savings});
 
@@ -374,11 +465,10 @@ class _AbonosCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final money = AppState.instance.money;
-    final extra = loan.extra;
 
-    if (extra == null || savings == null) {
+    if (loan.extras.isEmpty) {
       return ClayCard(
-        onTap: () => showExtraPaymentSheet(context, loan),
+        onTap: () => showAddExtraSheet(context, loan),
         child: Row(
           children: [
             Container(
@@ -396,69 +486,157 @@ class _AbonosCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '¿Vas a hacer abonos a capital?',
+                    'Abonos a capital',
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                   ),
                   SizedBox(height: 3),
                   Text(
-                    'Mira cuánto interés te ahorras y cuántos meses recortas.',
+                    'Agrega uno cada vez que abones y mira cuánto te ahorras.',
                     style: TextStyle(fontSize: 12, color: ClayColors.textMuted),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: ClayColors.textMuted,
-            ),
+            const Icon(Icons.add_rounded, color: ClayColors.green),
           ],
         ),
       );
     }
 
     return ClayCard(
-      color: ClayColors.green,
-      onTap: () => showExtraPaymentSheet(context, loan),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.bolt_rounded, color: Colors.white),
+              const Icon(Icons.bolt_rounded, color: ClayColors.green, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Mis abonos',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  extra.recurring
-                      ? '${money.format(extra.amount)} cada mes desde la cuota ${extra.startMonth}'
-                      : '${money.format(extra.amount)} una vez en la cuota ${extra.startMonth}',
+                  '${loan.extras.length}',
+                  textAlign: TextAlign.right,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: ClayColors.textMuted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          for (var i = 0; i < loan.extras.length; i++)
+            _AbonoTile(loan: loan, index: i),
+          if (savings != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ClayColors.green.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Te ahorras ${money.format(savings!.interesAhorrado)} '
+                    'en intereses',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                      color: ClayColors.green,
+                    ),
+                  ),
+                  if (savings!.mesesAhorrados > 0) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'Terminas ${savings!.mesesAhorrados} meses antes: '
+                      '${savings!.conAbonos.months} en vez de '
+                      '${savings!.sinAbonos.months}',
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: ClayColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          ClayButton(
+            label: 'Agregar otro abono',
+            icon: Icons.add_rounded,
+            color: ClayColors.green,
+            onPressed: () => showAddExtraSheet(context, loan),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Un abono de la lista, con su mes y el botón de quitar.
+class _AbonoTile extends StatelessWidget {
+  const _AbonoTile({required this.loan, required this.index});
+
+  final SavedLoan loan;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final money = AppState.instance.money;
+    final abono = loan.extras[index];
+    final pagado = abono.startMonth <= loan.paidMonths;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(
+            pagado ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            size: 17,
+            color: pagado ? ClayColors.green : ClayColors.textMuted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  money.format(abono.amount),
+                  style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
-              ),
-              const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Ahorras ${money.format(savings!.interesAhorrado)} en intereses',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
+                Text(
+                  abono.recurring
+                      ? 'Cada mes desde la cuota ${abono.startMonth} '
+                            '(${shortMonth(loan.dateOf(abono.startMonth))})'
+                      : 'Cuota ${abono.startMonth} · '
+                            '${longMonth(loan.dateOf(abono.startMonth))}',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: ClayColors.textMuted,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            extra.effect == ExtraEffect.reducirPlazo
-                ? 'Terminas ${savings!.mesesAhorrados} meses antes (${extra.effect.label.toLowerCase()})'
-                : 'Cuota final ${money.format(savings!.cuotaNueva)} (${extra.effect.label.toLowerCase()})',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
-              fontSize: 12.5,
+          IconButton(
+            icon: const Icon(
+              Icons.close_rounded,
+              size: 18,
+              color: ClayColors.textMuted,
             ),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => AppState.instance.removeExtra(loan, index),
           ),
         ],
       ),

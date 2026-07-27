@@ -88,13 +88,13 @@ class _LoanCalculatorFormState extends State<LoanCalculatorForm> {
   Future<void> _save() async {
     final result = _result;
     if (result == null) return;
-    final name = await askLoanName(context, 'Préstamo');
-    if (name == null) return;
+    final draft = await askLoanDetails(context, 'Préstamo');
+    if (draft == null) return;
 
     await AppState.instance.addLoan(
       SavedLoan(
         id: const Uuid().v4(),
-        name: name,
+        name: draft.name,
         kind: LoanKind.prestamo,
         amount: result.amount,
         ratePercent: parseAmount(_rate.text) ?? 0,
@@ -102,6 +102,7 @@ class _LoanCalculatorFormState extends State<LoanCalculatorForm> {
         months: result.months,
         currencyCode: AppState.instance.currencyCode,
         createdAt: DateTime.now(),
+        firstPaymentDate: draft.firstPayment,
         system: _system,
       ),
     );

@@ -129,13 +129,13 @@ class _MortgageFormState extends State<MortgageForm> {
   Future<void> _save() async {
     final result = _result;
     if (result == null) return;
-    final name = await askLoanName(context, 'Casa');
-    if (name == null) return;
+    final draft = await askLoanDetails(context, 'Casa');
+    if (draft == null) return;
 
     await AppState.instance.addLoan(
       SavedLoan(
         id: const Uuid().v4(),
-        name: name,
+        name: draft.name,
         kind: LoanKind.hipoteca,
         amount: result.amount,
         ratePercent: parseAmount(_rate.text) ?? 0,
@@ -143,6 +143,7 @@ class _MortgageFormState extends State<MortgageForm> {
         months: result.months,
         currencyCode: AppState.instance.currencyCode,
         createdAt: DateTime.now(),
+        firstPaymentDate: draft.firstPayment,
         propertyValue: parseAmount(_propertyValue.text),
         downPayment: _downPayment,
         system: _system,
