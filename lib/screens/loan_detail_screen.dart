@@ -172,6 +172,8 @@ class _Detalle extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          _ProgresoCard(loan: loan),
+          const SizedBox(height: 16),
           _AbonosCard(loan: loan, savings: savings),
           const SizedBox(height: 20),
           ClayButton(
@@ -179,8 +181,11 @@ class _Detalle extends StatelessWidget {
             icon: Icons.table_rows_rounded,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) =>
-                    AmortizationScreen(result: result, title: loan.name),
+                builder: (_) => AmortizationScreen(
+                  result: result,
+                  title: loan.name,
+                  loan: loan,
+                ),
               ),
             ),
           ),
@@ -217,6 +222,146 @@ class _Detalle extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Avance del crédito: cuántas cuotas van, cuánto falta y el botón para
+/// registrar la cuota del mes.
+class _ProgresoCard extends StatelessWidget {
+  const _ProgresoCard({required this.loan});
+
+  final SavedLoan loan;
+
+  @override
+  Widget build(BuildContext context) {
+    final money = AppState.instance.money;
+    final result = loan.result;
+    final pagadas = loan.paidMonths;
+    final siguiente = loan.nextRow;
+
+    return ClayCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Mi avance',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '$pagadas / ${result.months} cuotas',
+                    style: const TextStyle(
+                      color: ClayColors.textMuted,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClayProgress(value: loan.progress),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _mini(
+                  'Pagado',
+                  money.compact(loan.paidSoFar),
+                  ClayColors.green,
+                ),
+              ),
+              Container(width: 1, height: 32, color: ClayColors.background),
+              Expanded(
+                child: _mini(
+                  'Saldo pendiente',
+                  money.compact(loan.remainingBalance),
+                  ClayColors.purple,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (siguiente == null)
+            const Row(
+              children: [
+                Icon(
+                  Icons.emoji_events_rounded,
+                  color: ClayColors.green,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '¡Crédito saldado! No queda nada por pagar.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: ClayColors.green,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            ClayButton(
+              label:
+                  'Pagué la cuota ${siguiente.number} · '
+                  '${money.compact(siguiente.totalOut)}',
+              icon: Icons.check_circle_outline_rounded,
+              color: ClayColors.green,
+              onPressed: () =>
+                  AppState.instance.setPaidCount(loan, siguiente.number),
+            ),
+          if (pagadas > 0) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: () =>
+                    AppState.instance.setPaidCount(loan, pagadas - 1),
+                child: const Text(
+                  'Deshacer la última',
+                  style: TextStyle(color: ClayColors.textMuted, fontSize: 12.5),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _mini(String label, String value, Color color) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: ClayColors.textMuted),
+        ),
+        const SizedBox(height: 3),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Tarjeta de abonos: invita a configurarlos o muestra lo que se ahorra.

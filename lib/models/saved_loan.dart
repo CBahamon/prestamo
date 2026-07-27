@@ -23,6 +23,7 @@ class SavedLoan {
     this.system = PaymentSystem.cuotaFija,
     this.uvr,
     this.extra,
+    this.paidCount = 0,
   });
 
   final String id;
@@ -49,10 +50,15 @@ class SavedLoan {
   /// Abono a capital configurado por el usuario después de guardar.
   final ExtraPayment? extra;
 
+  /// Cuotas ya pagadas. Se cuentan desde la primera: un crédito se paga en
+  /// orden, así que basta el número y no hace falta guardar cuál es cuál.
+  final int paidCount;
+
   double get monthlyRate => rateType.toMonthlyRate(ratePercent);
 
-  /// Resultado tal como se pactó, sin abonos.
-  LoanResult get baseResult => calculateLoan(
+  /// Resultado tal como se pactó, sin abonos. Se calcula una sola vez porque
+  /// las pantallas lo consultan varias veces por frame.
+  late final LoanResult baseResult = calculateLoan(
     amount: amount,
     monthlyRate: monthlyRate,
     months: months,
@@ -61,7 +67,7 @@ class SavedLoan {
   );
 
   /// Resultado con los abonos configurados (igual al base si no hay).
-  LoanResult get result => extra == null
+  late final LoanResult result = extra == null
       ? baseResult
       : calculateLoan(
           amount: amount,
@@ -76,8 +82,39 @@ class SavedLoan {
       ? null
       : ExtraSavings(sinAbonos: baseResult, conAbonos: result);
 
-  SavedLoan copyWith({ExtraPayment? extra, bool clearExtra = false}) =>
-      SavedLoan(
+  /// Cuotas pagadas acotadas al plazo real: un abono puede acortar el crédito
+  /// por debajo de lo que el usuario ya había chuleado.
+  int get paidMonths => paidCount.clamp(0, result.months);
+
+  bool get isPaidOff => result.months > 0 && paidMonths >= result.months;
+
+  double get progress => result.months == 0 ? 0 : paidMonths / result.months;
+
+  /// Saldo que queda después de la última cuota pagada.
+  double get remainingBalance {
+    if (paidMonths == 0) return amount;
+    if (paidMonths >= result.months) return 0;
+    return result.schedule[paidMonths - 1].balance;
+  }
+
+  /// Plata que ya salió del bolsillo (cuotas + abonos de esos meses).
+  double get paidSoFar => result.schedule
+      .take(paidMonths)
+      .fold<double>(0, (sum, r) => sum + r.totalOut);
+
+  double get remainingToPay => result.schedule
+      .skip(paidMonths)
+      .fold<double>(0, (sum, r) => sum + r.totalOut);
+
+  /// Próxima cuota por pagar, o null si ya se pagó todo.
+  AmortizationRow? get nextRow =>
+      isPaidOff || result.schedule.isEmpty ? null : result.schedule[paidMonths];
+
+  SavedLoan copyWith({
+    ExtraPayment? extra,
+    bool clearExtra = false,
+    int? paidCount,
+  }) => SavedLoan(
         id: id,
         name: name,
         kind: kind,
@@ -92,6 +129,7 @@ class SavedLoan {
         system: system,
         uvr: uvr,
         extra: clearExtra ? null : (extra ?? this.extra),
+        paidCount: paidCount ?? this.paidCount,
       );
 
   Map<String, dynamic> toJson() => {
@@ -109,6 +147,7 @@ class SavedLoan {
     'system': system.name,
     'uvr': uvr?.toJson(),
     'extra': extra?.toJson(),
+    'paidCount': paidCount,
   };
 
   static SavedLoan fromJson(Map<String, dynamic> j) => SavedLoan(
@@ -140,5 +179,6 @@ class SavedLoan {
     extra: j['extra'] == null
         ? null
         : ExtraPayment.fromJson(j['extra'] as Map<String, dynamic>),
+    paidCount: (j['paidCount'] as num?)?.toInt() ?? 0,
   );
 }

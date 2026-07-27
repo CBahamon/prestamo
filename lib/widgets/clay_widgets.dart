@@ -376,6 +376,53 @@ class ClayButton extends StatelessWidget {
   }
 }
 
+/// Barra de avance hundida, al estilo del resto de la app.
+class ClayProgress extends StatelessWidget {
+  const ClayProgress({
+    super.key,
+    required this.value,
+    this.color = ClayColors.green,
+    this.height = 12,
+  });
+
+  /// Entre 0 y 1.
+  final double value;
+  final Color color;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      // Sin ancho explícito el Container se encoge al tamaño del relleno y
+      // el riel de fondo desaparece.
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: ClayColors.purple.withValues(alpha: 0.20),
+        borderRadius: BorderRadius.circular(height),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, c) => Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 420),
+              curve: Curves.easeOutCubic,
+              width: c.maxWidth * value.clamp(0.0, 1.0),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color.lerp(color, Colors.white, 0.3)!, color],
+                ),
+                borderRadius: BorderRadius.circular(height),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Encabezado morado con esquinas redondeadas inferiores.
 class ClayHeader extends StatelessWidget {
   const ClayHeader({

@@ -33,10 +33,15 @@ class AppState extends ChangeNotifier {
   double get totalSavings =>
       savings.fold<double>(0, (sum, s) => sum + s.amount);
 
-  double get totalMonthlyPayments =>
-      loans.fold<double>(0, (sum, l) => sum + l.result.payment);
+  /// Lo que toca pagar este mes: los créditos ya saldados no suman.
+  double get totalMonthlyPayments => loans.fold<double>(
+    0,
+    (sum, l) => sum + (l.nextRow?.totalOut ?? 0),
+  );
 
-  double get totalDebt => loans.fold<double>(0, (sum, l) => sum + l.amount);
+  /// Deuda viva: saldo pendiente, no el monto original.
+  double get totalDebt =>
+      loans.fold<double>(0, (sum, l) => sum + l.remainingBalance);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -80,6 +85,12 @@ class AppState extends ChangeNotifier {
     if (i < 0) return;
     loans = [...loans]..[i] = loan;
     await _persistLoans();
+  }
+
+  /// Marca las primeras [paid] cuotas como pagadas.
+  Future<void> setPaidCount(SavedLoan loan, int paid) async {
+    final tope = loan.result.months;
+    await updateLoan(loan.copyWith(paidCount: paid.clamp(0, tope)));
   }
 
   Future<void> deleteLoan(String id) async {

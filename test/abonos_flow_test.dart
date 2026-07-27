@@ -50,7 +50,13 @@ void main() {
     await tester.tap(find.text('Carro'));
     await tester.pumpAndSettle();
 
-    // La invitación a abonar está visible antes de configurar nada.
+    // La invitación a abonar está más abajo, después del avance del crédito.
+    await tester.dragUntilVisible(
+      find.text('¿Vas a hacer abonos a capital?'),
+      find.byType(ListView).first,
+      const Offset(0, -160),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('¿Vas a hacer abonos a capital?'), findsOneWidget);
 
     await tester.tap(find.text('¿Vas a hacer abonos a capital?'));

@@ -124,7 +124,13 @@ class _LoanTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  loan.result.paymentVaries ? 'Primera cuota' : 'Cuota mensual',
+                  loan.isPaidOff
+                      ? 'Saldado'
+                      : loan.paidMonths > 0
+                      ? 'Próxima cuota'
+                      : loan.result.paymentVaries
+                      ? 'Primera cuota'
+                      : 'Cuota mensual',
                   style: const TextStyle(
                     color: ClayColors.textMuted,
                     fontSize: 12,
@@ -136,17 +142,34 @@ class _LoanTile extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerRight,
                     child: Text(
-                      money.format(loan.result.payment),
+                      money.format(
+                        loan.nextRow?.totalOut ?? loan.paidSoFar,
+                      ),
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 17,
-                        color: color,
+                        color: loan.isPaidOff ? ClayColors.green : color,
                       ),
                     ),
                   ),
                 ),
               ],
             ),
+            if (loan.paidMonths > 0) ...[
+              const SizedBox(height: 12),
+              ClayProgress(value: loan.progress, height: 8),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${loan.paidMonths} de ${loan.result.months} cuotas pagadas',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: ClayColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

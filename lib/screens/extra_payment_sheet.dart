@@ -34,8 +34,12 @@ class _ExtraPaymentSheetState extends State<_ExtraPaymentSheet> {
         : formatPlain(widget.loan.extra!.amount),
   );
   late final TextEditingController _startMonth = TextEditingController(
-    text: '${widget.loan.extra?.startMonth ?? 1}',
+    text: '${widget.loan.extra?.startMonth ?? _primerMes}',
   );
+
+  /// No tiene sentido abonar en cuotas que ya se pagaron.
+  int get _primerMes =>
+      (widget.loan.paidMonths + 1).clamp(1, widget.loan.months);
 
   late ExtraEffect _effect =
       widget.loan.extra?.effect ?? ExtraEffect.reducirPlazo;
@@ -51,11 +55,11 @@ class _ExtraPaymentSheetState extends State<_ExtraPaymentSheet> {
   ExtraPayment? get _extra {
     final monto = parseAmount(_amount.text);
     if (monto == null || monto <= 0) return null;
-    final desde = parseAmount(_startMonth.text)?.round() ?? 1;
+    final desde = parseAmount(_startMonth.text)?.round() ?? _primerMes;
     return ExtraPayment(
       amount: monto,
       effect: _effect,
-      startMonth: desde.clamp(1, widget.loan.months),
+      startMonth: desde.clamp(_primerMes, widget.loan.months),
       recurring: _recurring,
     );
   }
@@ -142,9 +146,21 @@ class _ExtraPaymentSheetState extends State<_ExtraPaymentSheet> {
                     ClayField(
                       controller: _startMonth,
                       label: _recurring ? 'Desde la cuota' : 'En la cuota',
-                      hint: '1',
+                      hint: '$_primerMes',
                       onChanged: (_) => setState(() {}),
                     ),
+                    if (widget.loan.paidMonths > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Ya pagaste ${widget.loan.paidMonths} cuotas, '
+                          'los abonos arrancan desde la $_primerMes.',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: ClayColors.textMuted,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 16),
                     ClayChips<ExtraEffect>(
                       label: 'Qué quieres bajar',
