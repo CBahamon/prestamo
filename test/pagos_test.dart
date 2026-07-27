@@ -70,10 +70,9 @@ void main() {
       // el avance no puede pasarse del plazo real.
       final l = _prestamo(
         paidCount: 40,
-        extras: [const ExtraPayment(
-          amount: 2000000,
-          effect: ExtraEffect.reducirPlazo,
-        )],
+        extras: [
+          const ExtraPayment(amount: 2000000, effect: ExtraEffect.reducirPlazo),
+        ],
       );
       expect(l.result.months, lessThan(40));
       expect(l.paidMonths, l.result.months);
@@ -141,10 +140,9 @@ void main() {
     test('los abonos cuentan como capital', () {
       final l = _prestamo(
         paidCount: 6,
-        extras: [const ExtraPayment(
-          amount: 1000000,
-          effect: ExtraEffect.reducirPlazo,
-        )],
+        extras: [
+          const ExtraPayment(amount: 1000000, effect: ExtraEffect.reducirPlazo),
+        ],
       );
       final sinAbonos = _prestamo(paidCount: 6);
       expect(l.paidPrincipal, greaterThan(sinAbonos.paidPrincipal));
@@ -158,12 +156,14 @@ void main() {
       // de abonos no debe empujarlo a la cuota 5.
       final l = _prestamo(
         paidCount: 4,
-        extras: [const ExtraPayment(
-          amount: 5000000,
-          effect: ExtraEffect.reducirPlazo,
-          startMonth: 2,
-          recurring: false,
-        )],
+        extras: [
+          const ExtraPayment(
+            amount: 5000000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 2,
+            recurring: false,
+          ),
+        ],
       );
       expect(l.result.schedule[1].extra, 5000000);
       expect(l.paidPrincipal, closeTo(l.amount - l.remainingBalance, 1));

@@ -142,9 +142,7 @@ class _LoanTile extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerRight,
                     child: Text(
-                      money.format(
-                        loan.nextRow?.totalOut ?? loan.paidSoFar,
-                      ),
+                      money.format(loan.nextRow?.totalOut ?? loan.paidSoFar),
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 17,

@@ -6,8 +6,9 @@ import 'package:prestamo/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('la app arranca y navega a las pantallas principales',
-      (tester) async {
+  testWidgets('la app arranca y navega a las pantallas principales', (
+    tester,
+  ) async {
     _usePhoneScreen(tester);
     SharedPreferences.setMockInitialValues({'currency_v1': 'COP'});
     await initializeDateFormatting('es_CO');

@@ -40,8 +40,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('agregar abonos uno por uno actualiza el préstamo guardado',
-      (tester) async {
+  testWidgets('agregar abonos uno por uno actualiza el préstamo guardado', (
+    tester,
+  ) async {
     await arrancar(tester);
 
     // Pestaña Préstamos → detalle del préstamo guardado.
@@ -105,8 +106,9 @@ void main() {
     expect(AppState.instance.loans.single.extras, hasLength(1));
   });
 
-  testWidgets('el selector préstamo/hipotecario cambia el formulario',
-      (tester) async {
+  testWidgets('el selector préstamo/hipotecario cambia el formulario', (
+    tester,
+  ) async {
     await arrancar(tester);
 
     // El botón central abre la calculadora en modo préstamo.

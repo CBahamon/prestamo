@@ -5,16 +5,20 @@ import 'package:prestamo/core/money.dart';
 import 'package:prestamo/core/rates.dart';
 
 void main() {
-  test('E.A. se convierte a mensual con raíz doceava, no dividiendo entre 12',
-      () {
-    final m = RateType.efectivaAnual.toMonthlyRate(18);
-    expect(m, closeTo(0.013888, 0.0001)); // 1,3888% mensual, no 1,5%
-    expect(monthlyToEffectiveAnnual(m) * 100, closeTo(18, 0.0001));
-  });
+  test(
+    'E.A. se convierte a mensual con raíz doceava, no dividiendo entre 12',
+    () {
+      final m = RateType.efectivaAnual.toMonthlyRate(18);
+      expect(m, closeTo(0.013888, 0.0001)); // 1,3888% mensual, no 1,5%
+      expect(monthlyToEffectiveAnnual(m) * 100, closeTo(18, 0.0001));
+    },
+  );
 
   test('nominal anual mes vencido se divide entre 12', () {
-    expect(RateType.nominalAnualMesVencido.toMonthlyRate(18),
-        closeTo(0.015, 1e-9));
+    expect(
+      RateType.nominalAnualMesVencido.toMonthlyRate(18),
+      closeTo(0.015, 1e-9),
+    );
   });
 
   test('cuota fija y cierre exacto del saldo', () {
@@ -54,8 +58,9 @@ void main() {
           TextEditingValue(text: antes),
           TextEditingValue(
             text: despues,
-            selection:
-                TextSelection.collapsed(offset: cursor ?? despues.length),
+            selection: TextSelection.collapsed(
+              offset: cursor ?? despues.length,
+            ),
           ),
         );
 
@@ -80,8 +85,10 @@ void main() {
     test('no deja pasar de 12 dígitos enteros', () {
       expect(escribir('', '999999999999').text, '999.999.999.999');
       // El dígito 13 se ignora y queda lo que ya había.
-      expect(escribir('999.999.999.999', '999.999.999.9999').text,
-          '999.999.999.999');
+      expect(
+        escribir('999.999.999.999', '999.999.999.9999').text,
+        '999.999.999.999',
+      );
     });
 
     test('el cursor no se va al final cuando aparece un punto', () {

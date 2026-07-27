@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../theme/clay.dart';
 import '../widgets/clay_widgets.dart';
 import 'amortization_screen.dart';
+import 'export_loan.dart';
 import 'extra_payment_sheet.dart';
 
 class LoanDetailScreen extends StatelessWidget {
@@ -178,6 +179,13 @@ class _Detalle extends StatelessWidget {
           const SizedBox(height: 16),
           _AbonosCard(loan: loan, savings: savings),
           const SizedBox(height: 20),
+          ClayButton(
+            label: 'Exportar a Excel',
+            icon: Icons.file_download_outlined,
+            color: ClayColors.cyan,
+            onPressed: () => exportLoanToExcel(context, loan),
+          ),
+          const SizedBox(height: 12),
           ClayButton(
             label: 'Ver tabla de amortización',
             icon: Icons.table_rows_rounded,

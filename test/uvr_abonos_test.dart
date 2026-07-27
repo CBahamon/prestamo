@@ -20,8 +20,9 @@ void main() {
     );
 
     test('abona el mismo capital todos los meses', () {
-      final capitales =
-          alemana.schedule.map((r) => r.principal.round()).toSet();
+      final capitales = alemana.schedule
+          .map((r) => r.principal.round())
+          .toSet();
       expect(capitales.length, 1);
       expect(capitales.first, (50000000 / 60).round());
     });
@@ -54,10 +55,9 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extras: [const ExtraPayment(
-          amount: 500000,
-          effect: ExtraEffect.reducirPlazo,
-        )],
+        extras: [
+          const ExtraPayment(amount: 500000, effect: ExtraEffect.reducirPlazo),
+        ],
       );
 
       expect(conAbono.months, lessThan(base.months));
@@ -72,10 +72,9 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extras: [const ExtraPayment(
-          amount: 500000,
-          effect: ExtraEffect.reducirCuota,
-        )],
+        extras: [
+          const ExtraPayment(amount: 500000, effect: ExtraEffect.reducirCuota),
+        ],
       );
 
       expect(conAbono.schedule.last.payment, lessThan(base.payment));
@@ -85,11 +84,11 @@ void main() {
 
     test('reducir plazo ahorra más interés que reducir cuota', () {
       LoanResult con(ExtraEffect efecto) => calculateLoan(
-            amount: 50000000,
-            monthlyRate: mensual18,
-            months: 60,
-            extras: [ExtraPayment(amount: 500000, effect: efecto)],
-          );
+        amount: 50000000,
+        monthlyRate: mensual18,
+        months: 60,
+        extras: [ExtraPayment(amount: 500000, effect: efecto)],
+      );
 
       expect(
         con(ExtraEffect.reducirPlazo).totalInterest,
@@ -102,16 +101,19 @@ void main() {
         amount: 50000000,
         monthlyRate: mensual18,
         months: 60,
-        extras: [const ExtraPayment(
-          amount: 5000000,
-          effect: ExtraEffect.reducirPlazo,
-          startMonth: 12,
-          recurring: false,
-        )],
+        extras: [
+          const ExtraPayment(
+            amount: 5000000,
+            effect: ExtraEffect.reducirPlazo,
+            startMonth: 12,
+            recurring: false,
+          ),
+        ],
       );
 
-      final conAbono =
-          unico.schedule.where((r) => r.extra > 0).map((r) => r.number);
+      final conAbono = unico.schedule
+          .where((r) => r.extra > 0)
+          .map((r) => r.number);
       expect(conAbono, [12]);
       expect(unico.totalExtra, closeTo(5000000, 1));
     });
@@ -121,10 +123,9 @@ void main() {
         amount: 10000000,
         monthlyRate: mensual18,
         months: 60,
-        extras: [const ExtraPayment(
-          amount: 9000000,
-          effect: ExtraEffect.reducirPlazo,
-        )],
+        extras: [
+          const ExtraPayment(amount: 9000000, effect: ExtraEffect.reducirPlazo),
+        ],
       );
 
       expect(enorme.schedule.last.balance, 0);

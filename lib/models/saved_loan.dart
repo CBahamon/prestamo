@@ -63,8 +63,7 @@ class SavedLoan {
   /// que existiera el campo arrancan el mes siguiente a su creación.
   final DateTime? firstPaymentDate;
 
-  DateTime get firstPayment =>
-      firstPaymentDate ?? nextMonthStart(createdAt);
+  DateTime get firstPayment => firstPaymentDate ?? nextMonthStart(createdAt);
 
   /// Fecha en que se paga la cuota [number] (1 = la primera).
   DateTime dateOf(int number) => addMonths(firstPayment, number - 1);
@@ -140,23 +139,23 @@ class SavedLoan {
     int? paidCount,
     DateTime? firstPaymentDate,
   }) => SavedLoan(
-        id: id,
-        name: name,
-        kind: kind,
-        amount: amount,
-        ratePercent: ratePercent,
-        rateType: rateType,
-        months: months,
-        currencyCode: currencyCode,
-        createdAt: createdAt,
-        propertyValue: propertyValue,
-        downPayment: downPayment,
-        system: system,
-        uvr: uvr,
-        extras: extras ?? this.extras,
-        paidCount: paidCount ?? this.paidCount,
-        firstPaymentDate: firstPaymentDate ?? this.firstPaymentDate,
-      );
+    id: id,
+    name: name,
+    kind: kind,
+    amount: amount,
+    ratePercent: ratePercent,
+    rateType: rateType,
+    months: months,
+    currencyCode: currencyCode,
+    createdAt: createdAt,
+    propertyValue: propertyValue,
+    downPayment: downPayment,
+    system: system,
+    uvr: uvr,
+    extras: extras ?? this.extras,
+    paidCount: paidCount ?? this.paidCount,
+    firstPaymentDate: firstPaymentDate ?? this.firstPaymentDate,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -218,8 +217,6 @@ class SavedLoan {
         : UvrProjection.fromJson(j['uvr'] as Map<String, dynamic>),
     extras: _extrasFromJson(j),
     paidCount: (j['paidCount'] as num?)?.toInt() ?? 0,
-    firstPaymentDate: DateTime.tryParse(
-      j['firstPaymentDate'] as String? ?? '',
-    ),
+    firstPaymentDate: DateTime.tryParse(j['firstPaymentDate'] as String? ?? ''),
   );
 }

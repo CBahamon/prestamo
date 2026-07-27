@@ -35,10 +35,8 @@ class AppState extends ChangeNotifier {
       savings.fold<double>(0, (sum, s) => sum + s.amount);
 
   /// Lo que toca pagar este mes: los créditos ya saldados no suman.
-  double get totalMonthlyPayments => loans.fold<double>(
-    0,
-    (sum, l) => sum + (l.nextRow?.totalOut ?? 0),
-  );
+  double get totalMonthlyPayments =>
+      loans.fold<double>(0, (sum, l) => sum + (l.nextRow?.totalOut ?? 0));
 
   /// Deuda viva: saldo pendiente, no el monto original.
   double get totalDebt =>

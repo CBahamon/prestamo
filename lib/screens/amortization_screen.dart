@@ -6,6 +6,7 @@ import '../models/saved_loan.dart';
 import '../state/app_state.dart';
 import '../theme/clay.dart';
 import '../widgets/clay_widgets.dart';
+import 'export_loan.dart';
 
 /// Tabla de amortización mes a mes.
 ///
@@ -87,6 +88,16 @@ class _Tabla extends StatelessWidget {
           if (result.isUvr) 'en pesos proyectados',
         ].join(' · '),
         showBack: true,
+        trailing: loan == null
+            ? null
+            : IconButton(
+                tooltip: 'Exportar a Excel',
+                icon: const Icon(
+                  Icons.file_download_outlined,
+                  color: Colors.white,
+                ),
+                onPressed: () => exportLoanToExcel(context, loan!),
+              ),
       ),
       builder: (context, topPadding) => Column(
         children: [
@@ -98,117 +109,161 @@ class _Tabla extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
               20,
-              loan == null ? topPadding + 12 : 10,
+              loan == null ? topPadding + 12 : 8,
               20,
-              10,
+              6,
             ),
-            child: ClayCard(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              radius: 20,
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const SizedBox(
-                        width: 52,
-                        child: Text('# / MES', style: _headStyle),
-                      ),
-                      const _Head('Cuota'),
-                      const _Head('Interés'),
-                      const _Head('Capital'),
-                      if (conAbono) const _Head('Abono'),
-                      const _Head('Saldo'),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Valores en ${AppState.instance.currency.symbol} · '
-                    'M = millones',
-                    style: const TextStyle(
-                      fontSize: 9.5,
-                      color: ClayColors.textMuted,
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.swipe_left_rounded,
+                  size: 14,
+                  color: ClayColors.textMuted,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    'Desliza la tabla para ver todas las columnas',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: ClayColors.textMuted.withValues(alpha: 0.9),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
+          // La tabla entera va en un scroll horizontal: los valores se ven
+          // completos en vez de recortados en columnas de 45px.
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 30),
-              itemCount: result.schedule.length,
-              itemBuilder: (context, i) {
-                final row = result.schedule[i];
-                final pagada = row.number <= pagadas;
-                final siguiente = row.number == pagadas + 1;
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: SizedBox(
+                width: _anchoTabla(conAbono),
+                child: Column(
+                  children: [
+                    ClayCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      radius: 20,
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: _anchoNumero,
+                            child: Text('# / MES', style: _headStyle),
+                          ),
+                          for (final c in _columnas(conAbono))
+                            _Head(c.$1, ancho: c.$2),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 30),
+                        itemCount: result.schedule.length,
+                        itemBuilder: (context, i) {
+                          final row = result.schedule[i];
+                          final pagada = row.number <= pagadas;
+                          final siguiente = row.number == pagadas + 1;
 
-                final fila = Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 11,
-                  ),
-                  margin: const EdgeInsets.only(bottom: 6),
-                  decoration: BoxDecoration(
-                    color: pagada
-                        ? ClayColors.green.withValues(alpha: 0.13)
-                        : i.isEven
-                        ? ClayColors.surface
-                        : ClayColors.surface.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(16),
-                    border: siguiente && loan != null
-                        ? Border.all(
-                            color: ClayColors.purple.withValues(alpha: 0.55),
-                            width: 1.5,
-                          )
-                        : null,
-                  ),
-                  child: Row(
-                    children: [
-                      _NumeroCuota(
-                        number: row.number,
-                        fecha: addMonths(firstPayment, row.number - 1),
-                        pagada: pagada,
-                        conCasilla: loan != null,
-                      ),
-                      _Cell(money.tight(row.payment), apagada: pagada),
-                      _Cell(
-                        money.tight(row.interest),
-                        color: ClayColors.red,
-                        apagada: pagada,
-                      ),
-                      _Cell(
-                        money.tight(row.principal),
-                        color: ClayColors.green,
-                        apagada: pagada,
-                      ),
-                      if (conAbono)
-                        _Cell(
-                          row.extra > 0 ? money.tight(row.extra) : '—',
-                          color: ClayColors.purple,
-                          apagada: pagada,
-                        ),
-                      _Cell(
-                        money.tight(row.balance),
-                        bold: true,
-                        apagada: pagada,
-                      ),
-                    ],
-                  ),
-                );
+                          final fila = Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            margin: const EdgeInsets.only(bottom: 6),
+                            decoration: BoxDecoration(
+                              color: pagada
+                                  ? ClayColors.green.withValues(alpha: 0.13)
+                                  : i.isEven
+                                  ? ClayColors.surface
+                                  : ClayColors.surface.withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            // El borde de la próxima cuota va como decoración
+                            // de frente: como borde normal robaría 3px de
+                            // ancho y desbordaría la fila.
+                            foregroundDecoration: siguiente && loan != null
+                                ? BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: ClayColors.purple.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                      width: 1.5,
+                                    ),
+                                  )
+                                : null,
+                            child: Row(
+                              children: [
+                                _NumeroCuota(
+                                  number: row.number,
+                                  fecha: addMonths(
+                                    firstPayment,
+                                    row.number - 1,
+                                  ),
+                                  pagada: pagada,
+                                  conCasilla: loan != null,
+                                ),
+                                _Cell(
+                                  money.format(row.payment),
+                                  ancho: _anchoValor,
+                                  apagada: pagada,
+                                ),
+                                _Cell(
+                                  money.format(row.interest),
+                                  ancho: _anchoValor,
+                                  color: ClayColors.red,
+                                  apagada: pagada,
+                                ),
+                                _Cell(
+                                  money.format(row.principal),
+                                  ancho: _anchoValor,
+                                  color: ClayColors.green,
+                                  apagada: pagada,
+                                ),
+                                if (conAbono)
+                                  _Cell(
+                                    row.extra > 0
+                                        ? money.format(row.extra)
+                                        : '—',
+                                    ancho: _anchoValor,
+                                    color: ClayColors.purple,
+                                    apagada: pagada,
+                                  ),
+                                _Cell(
+                                  money.format(row.balance),
+                                  ancho: _anchoSaldo,
+                                  bold: true,
+                                  apagada: pagada,
+                                ),
+                              ],
+                            ),
+                          );
 
-                if (loan == null) return fila;
+                          if (loan == null) return fila;
 
-                // Tocar una cuota la marca como pagada junto con todas las
-                // anteriores; tocar una ya pagada la devuelve a pendiente.
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => AppState.instance.setPaidCount(
-                    loan!,
-                    pagada ? row.number - 1 : row.number,
-                  ),
-                  child: fila,
-                );
-              },
+                          // Tocar una cuota la marca como pagada junto con las
+                          // anteriores; tocar una pagada la devuelve a
+                          // pendiente.
+                          return GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => AppState.instance.setPaidCount(
+                              loan!,
+                              pagada ? row.number - 1 : row.number,
+                            ),
+                            child: fila,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -216,6 +271,31 @@ class _Tabla extends StatelessWidget {
     );
   }
 }
+
+const _anchoNumero = 58.0;
+const _anchoValor = 118.0;
+const _anchoSaldo = 126.0;
+
+/// Ancho total: columnas + el padding horizontal de las tarjetas (14 a cada
+/// lado), que si no se cuenta desborda la fila.
+double _anchoTabla(bool conAbono) =>
+    _anchoNumero + _anchos(conAbono).reduce((a, b) => a + b) + 28;
+
+List<double> _anchos(bool conAbono) => [
+  _anchoValor,
+  _anchoValor,
+  _anchoValor,
+  if (conAbono) _anchoValor,
+  _anchoSaldo,
+];
+
+List<(String, double)> _columnas(bool conAbono) => [
+  ('Cuota', _anchoValor),
+  ('Interés', _anchoValor),
+  ('Capital', _anchoValor),
+  if (conAbono) ('Abono', _anchoValor),
+  ('Saldo', _anchoSaldo),
+];
 
 /// Barra de avance del crédito.
 class _ProgresoBar extends StatelessWidget {
@@ -319,7 +399,7 @@ class _NumeroCuota extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 52,
+      width: _anchoNumero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -442,20 +522,20 @@ const _headStyle = TextStyle(
 );
 
 class _Head extends StatelessWidget {
-  const _Head(this.text);
+  const _Head(this.text, {required this.ancho});
 
   final String text;
+  final double ancho;
 
   @override
-  Widget build(BuildContext context) => Expanded(
-    flex: 3,
+  Widget build(BuildContext context) => SizedBox(
+    width: ancho,
     child: Padding(
-      padding: const EdgeInsets.only(left: 5),
+      padding: const EdgeInsets.only(left: 8),
       child: Text(
         text,
         textAlign: TextAlign.right,
         maxLines: 1,
-        overflow: TextOverflow.clip,
         style: _headStyle,
       ),
     ),
@@ -465,12 +545,14 @@ class _Head extends StatelessWidget {
 class _Cell extends StatelessWidget {
   const _Cell(
     this.text, {
+    required this.ancho,
     this.color,
     this.bold = false,
     this.apagada = false,
   });
 
   final String text;
+  final double ancho;
   final Color? color;
   final bool bold;
 
@@ -479,20 +561,20 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      flex: 3,
+    return SizedBox(
+      width: ancho,
       child: Padding(
         // Aire entre columnas: pegadas se leen como un solo número.
-        padding: const EdgeInsets.only(left: 5),
+        padding: const EdgeInsets.only(left: 8),
         child: Opacity(
-          opacity: apagada ? 0.45 : 1,
+          opacity: apagada ? 0.6 : 1,
           child: Text(
             text,
             textAlign: TextAlign.right,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 13,
               fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
               color: color ?? ClayColors.textDark,
             ),
